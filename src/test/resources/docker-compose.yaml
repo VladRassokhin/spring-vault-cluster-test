@@ -1,0 +1,38 @@
+version: '2.0'
+
+services:
+  consul:
+    image: consul
+    command: agent -server -client 0.0.0.0 -bootstrap-expect=1
+
+  vault1:
+    image: vault
+    command: vault server -config=/vault/config/local.json
+    environment:
+      VAULT_ADDR: http://127.0.0.1:8200   #for cli client to point to non https
+      VAULT_REDIRECT_ADDR: http://127.0.0.1:8300 # since 127.0.0.1 is used another node would fail to connect. though outside client would connect
+      VAULT_CLUSTER_ADDR: http://vault1:8200
+      VAULT_LOCAL_CONFIG: '{"storage":{"consul":{"address":"consul:8500","path":"vault"}},"listener":[{"tcp":{"address":"0.0.0.0:8200","cluster_address":"0.0.0.0:8201","tls_disable":1}}]}'
+    cap_add:
+      - IPC_LOCK
+    depends_on:
+      - consul
+    ports:
+      - 8300:8200
+
+  vault2:
+    image: vault
+    command: vault server -config=/vault/config/local.json
+    environment:
+      VAULT_ADDR: http://127.0.0.1:8200   #for cli client to point to non https
+      VAULT_REDIRECT_ADDR: http://127.0.0.1:8400 # since 127.0.0.1 is used another node would fail to connect. though outside client would connect
+      VAULT_CLUSTER_ADDR: http://vault2:8200
+      VAULT_LOCAL_CONFIG: '{"storage":{"consul":{"address":"consul:8500","path":"vault"}},"listener":[{"tcp":{"address":"0.0.0.0:8200","cluster_address":"0.0.0.0:8201","tls_disable":1}}]}'
+    cap_add:
+      - IPC_LOCK
+    depends_on:
+      - consul
+    ports:
+      - 8400:8200
+
+
